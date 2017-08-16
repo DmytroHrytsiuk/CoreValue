@@ -1,0 +1,34 @@
+trigger triggerProbability on Opportunity (after insert, after update) {
+    Set<Id> accountIds = new Set<Id>();
+    
+    for (Opportunity opp: Trigger.New){
+        accountIds.add(opp.AccountId);
+    }
+    
+    Map<id,Opportunity> accountMap = new Map<id,Opportunity>([SELECT Id, Name, OwnerId, Description, AccountId 
+                                                      FROM Opportunity WHERE id IN : accountIds]);   
+    List<Project__c> projectListToUpdate = new List<Project__c>();
+    
+    for (Opportunity opp: Trigger.New){
+       
+        if(opp.Probability >= 80 && opp.Name != 'Project'){
+            projectListToUpdate.add(new Project__c
+                                    (Name = opp.Name +' Project',
+                                     OwnerId__c = opp.OwnerId,
+                                     Description__c = opp.Description,
+                                     Opportunity__c = opp.Id,
+                                     Primary_Contact__c = opp.Account.Primary_Contact__c
+                                    ));
+            
+        }
+        
+    }
+    
+     try {
+        insert projectListToUpdate;
+    } catch (system.Dmlexception e) {
+        system.debug (e);
+    }
+
+
+}
